@@ -42,6 +42,9 @@ yarn-error.log*
 # Medusa build output
 **/.medusa/
 
+# Medusa local file uploads
+apps/backend/static/
+
 # Turbo
 .turbo
 
