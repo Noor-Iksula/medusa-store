@@ -5,6 +5,7 @@ loadEnv(process.env.NODE_ENV || 'development', process.cwd())
 module.exports = defineConfig({
   modules: [
     { resolve: "./src/modules/homepageSlider" },
+    { resolve: "./src/modules/storePriceAndQty" },
   ],
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
