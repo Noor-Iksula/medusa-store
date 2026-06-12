@@ -7,6 +7,7 @@ import {
   Label,
   Drawer,
   Select,
+  Input,
   toast,
   Badge,
 } from "@medusajs/ui"
@@ -24,6 +25,7 @@ const BRANDS = [
   "Auguste Reymond",
   "Balmain",
   "Baume et Mercier",
+  "Boss",
   "Calvin Klein",
   "Casio",
   "Cerruti 1881",
@@ -45,7 +47,6 @@ const BRANDS = [
   "G-Shock",
   "Guess",
   "Herbelin",
-  "Boss",
   "Just Cavalli",
   "Kenneth Cole",
   "King Seiko",
@@ -77,54 +78,107 @@ const BRANDS = [
   "Xylys",
 ].sort((a, b) => a.localeCompare(b))
 
+const MOVEMENTS = [
+  "Automatic",
+  "Digital",
+  "Ecodrive",
+  "Mechanical",
+  "Quartz",
+  "Smart/Digital",
+  "Solar",
+]
+
+type FormState = {
+  brand: string
+  collection: string
+  movement: string
+}
+
 const ProductBrandWidget = ({ data: product }: DetailWidgetProps<HttpTypes.AdminProduct>) => {
   const queryClient = useQueryClient()
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [selected, setSelected] = useState("")
+  const [form, setForm] = useState<FormState>({ brand: "", collection: "", movement: "" })
 
-  const currentBrand = (product.metadata?.brand as string) || null
+  const meta = product.metadata ?? {}
+  const currentBrand = (meta.brand as string) || null
+  const currentCollection = (meta.collection as string) || null
+  const currentMovement = (meta.movement as string) || null
 
   const updateMutation = useMutation({
-    mutationFn: (brand: string) =>
+    mutationFn: (values: FormState) =>
       sdk.admin.product.update(product.id, {
         metadata: {
-          ...product.metadata,
-          brand: brand || null,
+          ...meta,
+          brand: values.brand || null,
+          collection: values.collection.trim() || null,
+          movement: values.movement || null,
         },
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["product", product.id] })
-      toast.success("Brand updated")
+      toast.success("Product attributes updated")
       setDrawerOpen(false)
     },
-    onError: (e: any) => toast.error(e?.message || "Failed to update brand"),
+    onError: (e: any) => toast.error(e?.message || "Failed to update attributes"),
   })
 
   const handleOpen = () => {
-    setSelected(currentBrand ?? "")
+    setForm({
+      brand: currentBrand ?? "",
+      collection: currentCollection ?? "",
+      movement: currentMovement ?? "",
+    })
     setDrawerOpen(true)
   }
 
   return (
     <>
-      <Container className="px-6 py-4 divide-y divide-ui-border-base">
+      <Container className="divide-y divide-ui-border-base px-6 py-4">
+        {/* Header */}
         <div className="flex items-center justify-between pb-3">
           <Text size="small" leading="compact" weight="plus">
-            Brand
+            Watch Attributes
           </Text>
           <Button size="small" variant="transparent" onClick={handleOpen}>
             <PencilSquare />
           </Button>
         </div>
-        <div className="pt-3">
+
+        {/* Brand */}
+        <div className="flex items-center justify-between py-3">
+          <Text size="small" leading="compact" className="text-ui-fg-subtle">
+            Brand
+          </Text>
           {currentBrand ? (
-            <Badge color="blue" size="2xsmall">
-              {currentBrand}
-            </Badge>
+            <Badge color="blue" size="2xsmall">{currentBrand}</Badge>
           ) : (
-            <Text size="small" leading="compact" className="text-ui-fg-muted italic">
-              No brand set
+            <Text size="small" leading="compact" className="text-ui-fg-muted italic">—</Text>
+          )}
+        </div>
+
+        {/* Collection */}
+        <div className="flex items-center justify-between py-3">
+          <Text size="small" leading="compact" className="text-ui-fg-subtle">
+            Collection
+          </Text>
+          {currentCollection ? (
+            <Text size="small" leading="compact" weight="plus">
+              {currentCollection}
             </Text>
+          ) : (
+            <Text size="small" leading="compact" className="text-ui-fg-muted italic">—</Text>
+          )}
+        </div>
+
+        {/* Movement */}
+        <div className="flex items-center justify-between pt-3">
+          <Text size="small" leading="compact" className="text-ui-fg-subtle">
+            Movement
+          </Text>
+          {currentMovement ? (
+            <Badge color="grey" size="2xsmall">{currentMovement}</Badge>
+          ) : (
+            <Text size="small" leading="compact" className="text-ui-fg-muted italic">—</Text>
           )}
         </div>
       </Container>
@@ -132,32 +186,76 @@ const ProductBrandWidget = ({ data: product }: DetailWidgetProps<HttpTypes.Admin
       <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
         <Drawer.Content>
           <Drawer.Header>
-            <Drawer.Title>Edit Brand</Drawer.Title>
+            <Drawer.Title>Edit Watch Attributes</Drawer.Title>
           </Drawer.Header>
           <Drawer.Body className="p-6">
-            <div className="flex flex-col gap-y-2">
-              <Label htmlFor="brand-select">Brand</Label>
-              <Select value={selected} onValueChange={setSelected}>
-                <Select.Trigger id="brand-select">
-                  <Select.Value placeholder="Select a brand…" />
-                </Select.Trigger>
-                <Select.Content>
-                  {BRANDS.map((brand) => (
-                    <Select.Item key={brand} value={brand}>
-                      {brand}
-                    </Select.Item>
-                  ))}
-                </Select.Content>
-              </Select>
-              {selected && (
-                <button
-                  className="self-start text-xs text-ui-fg-muted underline hover:text-ui-fg-base"
-                  onClick={() => setSelected("")}
-                  type="button"
+            <div className="flex flex-col gap-y-6">
+
+              {/* Brand */}
+              <div className="flex flex-col gap-y-2">
+                <Label htmlFor="brand-select">Brand</Label>
+                <Select
+                  value={form.brand}
+                  onValueChange={(v) => setForm({ ...form, brand: v })}
                 >
-                  Clear selection
-                </button>
-              )}
+                  <Select.Trigger id="brand-select">
+                    <Select.Value placeholder="Select a brand…" />
+                  </Select.Trigger>
+                  <Select.Content>
+                    {BRANDS.map((b) => (
+                      <Select.Item key={b} value={b}>{b}</Select.Item>
+                    ))}
+                  </Select.Content>
+                </Select>
+                {form.brand && (
+                  <button
+                    type="button"
+                    className="self-start text-xs text-ui-fg-muted underline hover:text-ui-fg-base"
+                    onClick={() => setForm({ ...form, brand: "" })}
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+
+              {/* Collection */}
+              <div className="flex flex-col gap-y-2">
+                <Label htmlFor="collection-input">Collection</Label>
+                <Input
+                  id="collection-input"
+                  placeholder="e.g. HELLENIUM-VK, Tsuyosa, PRX…"
+                  value={form.collection}
+                  onChange={(e) => setForm({ ...form, collection: e.target.value })}
+                />
+              </div>
+
+              {/* Movement */}
+              <div className="flex flex-col gap-y-2">
+                <Label htmlFor="movement-select">Movement</Label>
+                <Select
+                  value={form.movement}
+                  onValueChange={(v) => setForm({ ...form, movement: v })}
+                >
+                  <Select.Trigger id="movement-select">
+                    <Select.Value placeholder="Select a movement…" />
+                  </Select.Trigger>
+                  <Select.Content>
+                    {MOVEMENTS.map((m) => (
+                      <Select.Item key={m} value={m}>{m}</Select.Item>
+                    ))}
+                  </Select.Content>
+                </Select>
+                {form.movement && (
+                  <button
+                    type="button"
+                    className="self-start text-xs text-ui-fg-muted underline hover:text-ui-fg-base"
+                    onClick={() => setForm({ ...form, movement: "" })}
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+
             </div>
           </Drawer.Body>
           <Drawer.Footer>
@@ -171,7 +269,7 @@ const ProductBrandWidget = ({ data: product }: DetailWidgetProps<HttpTypes.Admin
                 size="small"
                 isLoading={updateMutation.isPending}
                 disabled={updateMutation.isPending}
-                onClick={() => updateMutation.mutate(selected)}
+                onClick={() => updateMutation.mutate(form)}
               >
                 Save
               </Button>
