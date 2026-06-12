@@ -4,9 +4,9 @@ import {
   Container,
   Button,
   Text,
-  Input,
   Label,
   Drawer,
+  Select,
   toast,
   Badge,
 } from "@medusajs/ui"
@@ -15,10 +15,72 @@ import { useState } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { sdk } from "../lib/client"
 
+const BRANDS = [
+  "Aigner",
+  "Alexander Shorokhoff",
+  "Amazfit",
+  "Anne Klein",
+  "Armani Exchange",
+  "Auguste Reymond",
+  "Balmain",
+  "Baume et Mercier",
+  "Calvin Klein",
+  "Casio",
+  "Cerruti 1881",
+  "Charriol",
+  "Citizen",
+  "Concord",
+  "Daniel Wellington",
+  "Diesel",
+  "Ducati",
+  "Ebel",
+  "Edge",
+  "Emporio Armani",
+  "Ernest Borel",
+  "Fitbit",
+  "Fossil",
+  "Frederique Constant",
+  "Garmin",
+  "GC",
+  "G-Shock",
+  "Guess",
+  "Herbelin",
+  "Boss",
+  "Just Cavalli",
+  "Kenneth Cole",
+  "King Seiko",
+  "Michael Kors",
+  "Milus",
+  "Mobvoi",
+  "Movado",
+  "Nebula",
+  "Police",
+  "Polar",
+  "Rado",
+  "Raga",
+  "Roberto Cavalli",
+  "Roamer",
+  "Seiko",
+  "Seven Friday",
+  "SevenFriday",
+  "Swarovski",
+  "Tissot",
+  "Titan",
+  "Titan Edge",
+  "Titan Nebula",
+  "Titan Raga",
+  "Titan Smart",
+  "Tommy Hilfiger",
+  "U Boat",
+  "Versace",
+  "Victorinox",
+  "Xylys",
+].sort((a, b) => a.localeCompare(b))
+
 const ProductBrandWidget = ({ data: product }: DetailWidgetProps<HttpTypes.AdminProduct>) => {
   const queryClient = useQueryClient()
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [brandInput, setBrandInput] = useState("")
+  const [selected, setSelected] = useState("")
 
   const currentBrand = (product.metadata?.brand as string) || null
 
@@ -27,7 +89,7 @@ const ProductBrandWidget = ({ data: product }: DetailWidgetProps<HttpTypes.Admin
       sdk.admin.product.update(product.id, {
         metadata: {
           ...product.metadata,
-          brand: brand.trim() || null,
+          brand: brand || null,
         },
       }),
     onSuccess: () => {
@@ -39,7 +101,7 @@ const ProductBrandWidget = ({ data: product }: DetailWidgetProps<HttpTypes.Admin
   })
 
   const handleOpen = () => {
-    setBrandInput(currentBrand ?? "")
+    setSelected(currentBrand ?? "")
     setDrawerOpen(true)
   }
 
@@ -74,39 +136,42 @@ const ProductBrandWidget = ({ data: product }: DetailWidgetProps<HttpTypes.Admin
           </Drawer.Header>
           <Drawer.Body className="p-6">
             <div className="flex flex-col gap-y-2">
-              <Label htmlFor="brand-input">Brand Name</Label>
-              <Input
-                id="brand-input"
-                placeholder="e.g. Versace, Casio, Citizen…"
-                value={brandInput}
-                onChange={(e) => setBrandInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !updateMutation.isPending) {
-                    updateMutation.mutate(brandInput)
-                  }
-                }}
-                autoFocus
-              />
-              <Text size="small" leading="compact" className="text-ui-fg-subtle">
-                Stored in product metadata. Leave empty to remove.
-              </Text>
+              <Label htmlFor="brand-select">Brand</Label>
+              <Select value={selected} onValueChange={setSelected}>
+                <Select.Trigger id="brand-select">
+                  <Select.Value placeholder="Select a brand…" />
+                </Select.Trigger>
+                <Select.Content>
+                  {BRANDS.map((brand) => (
+                    <Select.Item key={brand} value={brand}>
+                      {brand}
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select>
+              {selected && (
+                <button
+                  className="self-start text-xs text-ui-fg-muted underline hover:text-ui-fg-base"
+                  onClick={() => setSelected("")}
+                  type="button"
+                >
+                  Clear selection
+                </button>
+              )}
             </div>
           </Drawer.Body>
           <Drawer.Footer>
             <div className="flex items-center justify-end gap-x-2">
               <Drawer.Close asChild>
-                <Button
-                  size="small"
-                  variant="secondary"
-                  disabled={updateMutation.isPending}
-                >
+                <Button size="small" variant="secondary" disabled={updateMutation.isPending}>
                   Cancel
                 </Button>
               </Drawer.Close>
               <Button
                 size="small"
                 isLoading={updateMutation.isPending}
-                onClick={() => updateMutation.mutate(brandInput)}
+                disabled={updateMutation.isPending}
+                onClick={() => updateMutation.mutate(selected)}
               >
                 Save
               </Button>
